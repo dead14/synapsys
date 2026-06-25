@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ILI Pipeline Alignment System v10</title>
+  <meta name="description" content="4-Layer Sequential Hierarchical Pipeline Alignment Engine for In-Line Inspection Data">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <!-- ═══════════ SIDEBAR ═══════════ -->
+    <aside class="app-sidebar">
+      
+      <!-- Brand -->
+      <div class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 100 100" fill="var(--text-main)">
+            <mask id="synapseMask">
+              <rect width="100" height="100" fill="white" />
+              <!-- Cut 1 -->
+              <path d="M-10 33 L40 33 C45 33, 45 25, 50 25 L110 25" stroke="black" stroke-width="8" fill="none" stroke-linejoin="round" />
+              <!-- Cut 2 -->
+              <path d="M-10 55 L35 55 C40 55, 40 47, 45 47 L110 47" stroke="black" stroke-width="8" fill="none" stroke-linejoin="round" />
+              <!-- Cut 3 -->
+              <path d="M-10 77 L45 77 C50 77, 50 69, 55 69 L110 69" stroke="black" stroke-width="8" fill="none" stroke-linejoin="round" />
+            </mask>
+            <circle cx="50" cy="50" r="42" mask="url(#synapseMask)" />
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>synapse</h1>
+        </div>
+      </div>
+
+      <!-- Navigation -->
+      <nav class="sidebar-nav">
+        <button class="nav-item active" data-view="viewUpload" id="navUpload">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+          Upload Data
+        </button>
+        <button class="nav-item" data-view="viewProgress" id="navProgress" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Alignment Progress
+        </button>
+        <button class="nav-item" data-view="viewResults" id="navResults" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+          Analysis Results
+        </button>
+      </nav>
+
+      <!-- Sidebar Footer (Help / Status) -->
+      <div class="sidebar-footer">
+        <div class="sidebar-footer-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <h3>Help center</h3>
+        <p>Engine status: Ready</p>
+        <button class="btn-footer" id="headerStatus">API Connected</button>
+      </div>
+
+    </aside>
+
+    <!-- ═══════════ MAIN CONTENT ═══════════ -->
+    <main class="app-main">
+      
+      <!-- Shared Header -->
+      <header class="main-header">
+        <div class="main-title">
+          <h2 id="pageTitle">Hi, Engineer! <span>👋</span></h2>
+          <p id="pageSubtitle">Upload two ILI survey files to begin the 4-layer alignment process.</p>
+        </div>
+        <div class="main-actions">
+          <button class="btn-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          </button>
+          <button class="btn-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- ════════════ VIEW: UPLOAD ════════════ -->
+      <div id="viewUpload" class="view-container active">
+        
+        <div class="upload-bento">
+          <!-- R1 Drop Zone -->
+          <div class="drop-zone" id="dropZone_r1">
+            <input type="file" accept=".xlsx,.xls,.xlsm" tabindex="-1">
+            <div class="zone-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/>
+                <path d="M14 3v5h5M12 18v-6M9 15h6"/>
+              </svg>
+            </div>
+            <div class="zone-label">Survey R1 (Lama)</div>
+            <div class="zone-hint">Drag &amp; drop Excel file</div>
+            <div class="zone-file-info"></div>
+          </div>
+
+          <!-- R2 Drop Zone -->
+          <div class="drop-zone" id="dropZone_r2">
+            <input type="file" accept=".xlsx,.xls,.xlsm" tabindex="-1">
+            <div class="zone-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/>
+                <path d="M14 3v5h5M12 18v-6M9 15h6"/>
+              </svg>
+            </div>
+            <div class="zone-label">Survey R2 (Baru)</div>
+            <div class="zone-hint">Drag &amp; drop Excel file</div>
+            <div class="zone-file-info"></div>
+          </div>
+        </div>
+
+        <!-- Parameters Card -->
+        <div class="params-card">
+          <div class="params-header">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+            Pipeline Parameters
+          </div>
+          <div class="params-grid" id="paramsGrid">
+            <div class="form-group">
+              <label>Year R1 (opsional)</label>
+              <input type="number" id="param_year_r1" placeholder="e.g. 2018" min="1990" max="2030">
+            </div>
+            <div class="form-group">
+              <label>Year R2 (opsional)</label>
+              <input type="number" id="param_year_r2" placeholder="e.g. 2023" min="1990" max="2030">
+            </div>
+            <div class="form-group">
+              <label>Wall Thickness (mm)</label>
+              <input type="number" id="param_wt_mm" step="0.1" value="6.4">
+            </div>
+            <div class="form-group">
+              <label>Outer Diameter (mm)</label>
+              <input type="number" id="param_od_mm" step="0.1" value="219.1">
+            </div>
+            <div class="form-group">
+              <label>SMYS (MPa)</label>
+              <input type="number" id="param_smys_mpa" step="1" value="359">
+            </div>
+            <div class="form-group">
+              <label>MAOP (bar)</label>
+              <input type="number" id="param_maop_bar" step="1" value="70">
+            </div>
+          </div>
+        </div>
+
+        <div class="run-action">
+          <button class="btn-primary" id="btnRunAlignment" disabled>
+            Start Alignment
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+
+      </div>
+
+
+      <!-- ════════════ VIEW: PROGRESS ════════════ -->
+      <div id="viewProgress" class="view-container">
+        
+        <div class="progress-dashboard">
+          
+          <div class="progress-card">
+            <div class="progress-header">
+              <div>
+                <h3 style="margin-bottom:8px">Alignment Progress</h3>
+                <p style="color:#a0a0a0;font-size:0.9rem">Executing 4-layer sequential matching algorithm</p>
+              </div>
+              <div class="progress-pct" id="progressPctLabel">0%</div>
+            </div>
+
+            <div class="progress-bar-container">
+              <div class="progress-bar-fill" id="progressBarFill" style="width: 0%"></div>
+            </div>
+
+            <div class="pipeline-nodes">
+              <div class="pipeline-node" id="pipelineNode_0">
+                <div class="node-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/></svg></div>
+                <span class="node-label">Layer 0<br>Validate</span>
+              </div>
+              <div class="pipeline-node" id="pipelineNode_1">
+                <div class="node-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4"/></svg></div>
+                <span class="node-label">Layer 1<br>Valve Corr.</span>
+              </div>
+              <div class="pipeline-node" id="pipelineNode_2">
+                <div class="node-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/></svg></div>
+                <span class="node-label">Layer 2<br>Weld Match</span>
+              </div>
+              <div class="pipeline-node" id="pipelineNode_3">
+                <div class="node-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/></svg></div>
+                <span class="node-label">Layer 3<br>Anomaly</span>
+              </div>
+              <div class="pipeline-node" id="pipelineNode_4">
+                <div class="node-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+                <span class="node-label">Layer 4<br>Physics Val.</span>
+              </div>
+              <div class="pipeline-node" id="pipelineNode_5">
+                <div class="node-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/></svg></div>
+                <span class="node-label">Report<br>Gen.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="log-card">
+            <div class="log-header">
+              <span>Terminal Output</span>
+              <span id="logCount" style="color:var(--text-muted);font-weight:normal"></span>
+            </div>
+            <div class="log-terminal" id="logTerminal">
+              <div class="log-line">Waiting for pipeline to start...</div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- ════════════ VIEW: RESULTS ════════════ -->
+      <div id="viewResults" class="view-container">
+        
+        <div class="results-bento">
+          <div class="stat-card green">
+            <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div>
+            <div class="stat-value" id="statMatched">—</div>
+            <div class="stat-label">Matched Pairs</div>
+          </div>
+          <div class="stat-card red">
+            <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+            <div class="stat-value" id="statActive">—</div>
+            <div class="stat-label">Active Corrosion</div>
+          </div>
+          <div class="stat-card orange">
+            <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+            <div class="stat-value" id="statNDF">—</div>
+            <div class="stat-label">Not Detected (NDF)</div>
+          </div>
+          <div class="stat-card blue">
+            <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div>
+            <div class="stat-value" id="statNew">—</div>
+            <div class="stat-label">New Anomalies</div>
+          </div>
+        </div>
+
+        <div class="charts-bento">
+          <div class="chart-card"><canvas id="chartDonut" style="width:100%;height:100%"></canvas></div>
+          <div class="chart-card"><canvas id="chartDepth" style="width:100%;height:100%"></canvas></div>
+          <div class="chart-card"><canvas id="chartGauge" style="width:100%;height:100%"></canvas></div>
+        </div>
+
+        <div class="tabs-card">
+          <div class="tabs-header">
+            <button class="tab-btn active" data-tab="comparison">Comparison</button>
+            <button class="tab-btn" data-tab="new">Only NEW</button>
+            <button class="tab-btn" data-tab="old">Only OLD (NDF)</button>
+            <button class="tab-btn" data-tab="physics">Physics Val.</button>
+            <button class="tab-btn" data-tab="weld">Weld Matching</button>
+          </div>
+
+          <div class="tab-content active" id="tab_comparison">
+            <div class="table-toolbar">
+              <input type="text" class="table-search" placeholder="Search anomalies...">
+              <span class="table-count" style="font-size:0.85rem;color:var(--text-muted);font-weight:600;display:flex;align-items:center"></span>
+            </div>
+            <div class="table-container" id="table_comparison"></div>
+          </div>
+
+          <!-- Other tabs share the same structure -->
+          <div class="tab-content" id="tab_new"><div class="table-toolbar"><input type="text" class="table-search" placeholder="Search..."></div><div class="table-container" id="table_new"></div></div>
+          <div class="tab-content" id="tab_old"><div class="table-toolbar"><input type="text" class="table-search" placeholder="Search..."></div><div class="table-container" id="table_old"></div></div>
+          <div class="tab-content" id="tab_physics"><div class="table-toolbar"><input type="text" class="table-search" placeholder="Search..."></div><div class="table-container" id="table_physics"></div></div>
+          <div class="tab-content" id="tab_weld"><div class="table-toolbar"><input type="text" class="table-search" placeholder="Search..."></div><div class="table-container" id="table_weld"></div></div>
+        </div>
+
+        <div class="download-card">
+          <div class="download-info">
+            <h3>Download Complete Report</h3>
+            <p>Export all results and calculations to a multi-sheet Excel file (.xlsx).</p>
+          </div>
+          <button class="btn-download" id="btnDownload">
+            Download Report
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </button>
+        </div>
+
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/charts.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
