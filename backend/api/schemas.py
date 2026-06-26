@@ -19,6 +19,7 @@ class UploadResponse(BaseModel):
 class AlignmentRequest(BaseModel):
     """Request body untuk menjalankan alignment pipeline."""
     job_id: str
+    project_id: Optional[int] = None
     year_r1: Optional[int] = None
     year_r2: Optional[int] = None
     vendor_r1: Optional[str] = None
@@ -97,3 +98,15 @@ class AlignmentResultResponse(BaseModel):
     results: list[MatchResultSchema] = Field(default_factory=list)
     valve_correction: list[dict] = Field(default_factory=list)
     weld_matching: list[dict] = Field(default_factory=list)
+
+class ProjectCreate(BaseModel):
+    name: str
+
+class ProjectResponse(BaseModel):
+    id: int
+    name: str
+    created_at: datetime
+    status: str
+    
+    class Config:
+        from_attributes = True

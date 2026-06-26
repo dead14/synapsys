@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
   //  STATE
   // ═══════════════════════════════════════════════════════════════
   const state = {
-    currentView: 'upload',
+    currentView: 'dashboard',
     jobId: null,
     files: { r1: null, r2: null },
     params: {
@@ -30,15 +30,19 @@ document.addEventListener('DOMContentLoaded', () => {
   const $$ = (sel) => document.querySelectorAll(sel);
 
   const views = {
+    dashboard: $('#viewDashboard'),
     upload:   $('#viewUpload'),
     progress: $('#viewProgress'),
     results:  $('#viewResults'),
+    ffs:      $('#viewFFS'),
   };
 
   const navItems = {
+    dashboard: $('#navDashboard'),
     upload:   $('#navUpload'),
     progress: $('#navProgress'),
     results:  $('#navResults'),
+    ffs:      $('#navFFS'),
   };
 
   // ═══════════════════════════════════════════════════════════════
@@ -56,6 +60,27 @@ document.addEventListener('DOMContentLoaded', () => {
     if (navItems[name]) {
       navItems[name].classList.add('active');
     }
+
+    const titleEl = $('#pageTitle');
+    const subEl = $('#pageSubtitle');
+    if (titleEl && subEl) {
+      if (name === 'dashboard') {
+        titleEl.innerHTML = 'Home Dashboard <span>🏠</span>';
+        subEl.textContent = 'Welcome back! Here is an overview of your recent pipeline alignment projects.';
+      } else if (name === 'upload') {
+        titleEl.innerHTML = 'Hi, Engineer! <span>👋</span>';
+        subEl.textContent = 'Upload two ILI survey files to begin the 4-layer alignment process.';
+      } else if (name === 'progress') {
+        titleEl.innerHTML = 'Alignment in Progress <span>⚙️</span>';
+        subEl.textContent = 'Please wait while the engine matches the pipeline features...';
+      } else if (name === 'results') {
+        titleEl.innerHTML = 'Analysis Results <span>📊</span>';
+        subEl.textContent = 'Review the alignment matches and statistics below.';
+      } else if (name === 'ffs') {
+        titleEl.innerHTML = 'FFS Assessment <span>🔍</span>';
+        subEl.textContent = 'Fitness-For-Service (ASME B31G Modified) for matched anomalies.';
+      }
+    }
   }
 
   // Sidebar navigation click handlers
@@ -63,6 +88,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (navItems[name]) {
       navItems[name].addEventListener('click', () => {
         if (!navItems[name].disabled) {
+          if (name === 'ffs') {
+             sessionStorage.setItem('ffs_job_id', state.jobId);
+             const iframe = $('#ffsFrame');
+             if (iframe.src === 'about:blank' || iframe.src === window.location.href) {
+               iframe.src = '/static/ffs.html';
+             }
+          } else if (name === 'dashboard') {
+             // Refresh dashboard data dynamically
+             loadProjects();
+          }
           switchView(name);
         }
       });
@@ -146,6 +181,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const btn = $('#btnRunAlignment');
     if (!state.files.r1 || !state.files.r2) return;
 
+    const resumeSelect = $('#param_resume_project');
+    const nameInput = $('#param_project_name');
+    
+    let projectId = null;
+    
+    if (resumeSelect && resumeSelect.value) {
+      projectId = parseInt(resumeSelect.value);
+    } else if (nameInput && nameInput.value.trim()) {
+      try {
+        const proj = await api.createProject(nameInput.value.trim());
+        projectId = proj.id;
+        state.projectName = proj.name;
+      } catch (err) {
+        alert('Error creating project: ' + err.message);
+        return;
+      }
+    } else {
+      alert('Please enter a New Pipeline Name or select a Previous Project.');
+      return;
+    }
+
     btn.disabled = true;
     btn.innerHTML = '<span class="loading-spinner"></span> Uploading...';
 
@@ -161,7 +217,7 @@ document.addEventListener('DOMContentLoaded', () => {
       resetProgress();
 
       // Step 3: Start alignment
-      const params = {};
+      const params = { project_id: projectId };
       for (const [k, v] of Object.entries(state.params)) {
         if (v !== null && v !== '' && !isNaN(v)) params[k] = v;
       }
@@ -561,9 +617,129 @@ document.addEventListener('DOMContentLoaded', () => {
   // ═══════════════════════════════════════════════════════════════
   //  INIT
   // ═══════════════════════════════════════════════════════════════
+  async function loadProjects() {
+    try {
+      const projects = await api.getProjects();
+      const select = $('#param_resume_project');
+      if (select) {
+        select.innerHTML = '<option value="">-- Select Project --</option>';
+        projects.forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p.id;
+          opt.textContent = p.name;
+          select.appendChild(opt);
+        });
+      }
+
+      // Populate Dashboard
+      let totalProjects = projects.length;
+      let completedJobs = 0;
+      let failedJobs = 0;
+      
+      const tbody = $('#table_recent_projects tbody');
+      if (tbody) tbody.innerHTML = '';
+
+      for (const p of projects) {
+         let pStatus = '<span class="badge" style="background:var(--surface2);border:1px solid var(--border);">Pending</span>';
+         
+         try {
+           const jobs = await api.getProjectJobs(p.id);
+           const alignmentJob = jobs.find(j => j.type === 'alignment');
+           if (alignmentJob) {
+             if (alignmentJob.status === 'completed') {
+               completedJobs++;
+               pStatus = '<span class="badge badge-green">Completed</span>';
+             } else if (alignmentJob.status === 'failed') {
+               failedJobs++;
+               pStatus = '<span class="badge badge-red">Failed</span>';
+             } else {
+               pStatus = `<span class="badge badge-orange">${alignmentJob.status}</span>`;
+             }
+           }
+         } catch(e) {}
+
+         if (tbody) {
+           const tr = document.createElement('tr');
+           tr.innerHTML = `
+             <td style="color:var(--text-muted);">PRJ-${p.id.toString().padStart(3, '0')}</td>
+             <td style="font-weight:600;">${p.name}</td>
+             <td>${new Date(p.created_at).toLocaleDateString()}</td>
+             <td>${pStatus}</td>
+             <td><button class="btn-resume" data-id="${p.id}">Continue</button></td>
+           `;
+           tbody.appendChild(tr);
+         }
+      }
+
+      if ($('#dash_val_projects')) $('#dash_val_projects').textContent = totalProjects;
+      if ($('#dash_val_jobs')) $('#dash_val_jobs').textContent = completedJobs;
+      if ($('#dash_val_failed')) $('#dash_val_failed').textContent = failedJobs;
+
+      if (tbody) {
+        tbody.querySelectorAll('.btn-resume').forEach(btn => {
+          btn.addEventListener('click', () => {
+             const pid = btn.getAttribute('data-id');
+             if (select) {
+               select.value = pid;
+               select.dispatchEvent(new Event('change'));
+             }
+          });
+        });
+      }
+
+      // When user selects a project, try to load its latest completed job
+      select.addEventListener('change', async () => {
+        const projectId = select.value;
+        if (!projectId) return;
+        try {
+          const jobs = await api.getProjectJobs(projectId);
+          const alignmentJob = jobs.find(j => j.type === 'alignment' && j.status === 'completed');
+          if (alignmentJob) {
+            // Restore job
+            state.jobId = alignmentJob.id;
+            
+            try {
+              const res = await api.getResults(state.jobId);
+              state.results = res;
+            } catch(e) {
+              console.warn("Detailed results not in memory. Excel report and FFS are still available.");
+              state.results = null;
+            }
+            
+            const navProgress = $('#navProgress');
+            if (navProgress) navProgress.disabled = !state.results;
+            const navResults = $('#navResults');
+            if (navResults) navResults.disabled = !state.results;
+            const navFFS = $('#navFFS');
+            if (navFFS) navFFS.disabled = false;
+            
+            if (state.results) {
+              renderResults();
+              switchView('results');
+            } else {
+              // Switch directly to FFS if results are missing
+              sessionStorage.setItem('ffs_job_id', state.jobId);
+              const iframe = $('#ffsFrame');
+              if (iframe) iframe.src = '/static/ffs.html';
+              switchView('ffs');
+              alert('Alignment tables are no longer in memory. Redirecting to FFS Assessment & Excel download.');
+            }
+          } else {
+            alert('No completed alignment job found for this project. Please upload files to run a new alignment.');
+          }
+        } catch (err) {
+          console.error("Failed to fetch project jobs", err);
+        }
+      });
+    } catch (err) {
+      console.error("Failed to load projects", err);
+    }
+  }
+
   function initApp() {
     initDragDrop();
     initParams();
+    loadProjects();
 
     const btnRun = $('#btnRunAlignment');
     if (btnRun) btnRun.addEventListener('click', handleRunClick);
@@ -571,11 +747,33 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnDownload = $('#btnDownload');
     if (btnDownload) btnDownload.addEventListener('click', handleDownload);
 
+    const btnContinueFFS = $('#btnContinueFFS');
+    if (btnContinueFFS) {
+      btnContinueFFS.addEventListener('click', () => {
+        if (!state.jobId) {
+          alert('No alignment job is currently active.');
+          return;
+        }
+        $('#navFFS').disabled = false;
+        sessionStorage.setItem('ffs_job_id', state.jobId);
+        
+        const iframe = $('#ffsFrame');
+        if (iframe.src === 'about:blank' || iframe.src === window.location.href) {
+          iframe.src = '/static/ffs.html';
+        } else {
+          // Force reload the iframe so it fetches the latest ffs_job_id from sessionStorage
+          iframe.contentWindow.location.reload();
+        }
+        
+        switchView('ffs');
+      });
+    }
+
     const btnNew = $('#btnNewAnalysis');
     if (btnNew) btnNew.addEventListener('click', handleNewAnalysis);
 
     updateRunButton();
-    switchView('upload');
+    switchView('dashboard');
   }
 
   initApp();

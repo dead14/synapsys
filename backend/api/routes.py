@@ -35,7 +35,12 @@ from .schemas import (
     MatchResultSchema,
     SummaryStats,
     AlignmentResultResponse,
+    ProjectCreate,
+    ProjectResponse,
 )
+from .database import get_db, Project, Job
+from sqlalchemy.orm import Session
+from fastapi import Depends
 
 router = APIRouter()
 
@@ -183,7 +188,7 @@ def _run_alignment_thread(job_id: str, params: dict):
             maop_bar=params.get("maop_bar", 70.0),
         )
 
-        # Simpan hasil
+        # Simpan hasil in-memory
         job["report"] = report
         job["results_df"] = results_to_dataframe(report.match_results)
         job["output_path"] = output_path
@@ -191,6 +196,44 @@ def _run_alignment_thread(job_id: str, params: dict):
         job["progress_pct"] = 100
         job["message"] = "Pipeline completed successfully"
         job["completed_at"] = datetime.now().isoformat()
+        
+        # Simpan ke Database jika project_id ada
+        if params.get("project_id"):
+            from .database import SessionLocal, Job
+            from engine.ffs_engine import generate_ffs_data
+            import json
+            
+            # Pre-generate FFS Data
+            ffs_data = generate_ffs_data(
+                match_results=report.match_results,
+                run1_anomalies=report._corrected_run1.get("anomalies", []),
+                run2_anomalies=report._corrected_run2.get("anomalies", []),
+                years_between=float(params.get("year_r2", 2) - params.get("year_r1", 0)) if params.get("year_r1") and params.get("year_r2") else 0.0,
+                wt_mm=params.get("wt_mm", 6.4),
+                od_mm=params.get("od_mm", 219.1),
+                smys_mpa=params.get("smys_mpa", 359.0),
+                maop_bar=params.get("maop_bar", 70.0)
+            )
+            ffs_path = str(UPLOAD_DIR / job_id / "ffs_data.json")
+            with open(ffs_path, "w") as f:
+                json.dump(ffs_data, f)
+                
+            db = SessionLocal()
+            try:
+                db_job = Job(
+                    id=job_id,
+                    project_id=params["project_id"],
+                    job_type="alignment",
+                    status="completed",
+                    result_path=ffs_path  # We point result_path to ffs_path for easy fetching!
+                )
+                db_job.set_params(params)
+                db.add(db_job)
+                db.commit()
+            except Exception as dbe:
+                print(f"Error saving to DB: {dbe}")
+            finally:
+                db.close()
 
     except Exception as e:
         job["status"] = "failed"
@@ -221,6 +264,80 @@ async def health_check():
     """Health check endpoint."""
     return {"status": "ok", "version": "10.0", "engine": "ILI Pipeline Alignment System"}
 
+# ══════════════════════════════════════════════════════════════════════════════
+#  PROJECT ENDPOINTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.post("/api/projects", response_model=ProjectResponse)
+def create_project(project: ProjectCreate, db: Session = Depends(get_db)):
+    db_project = Project(name=project.name)
+    db.add(db_project)
+    db.commit()
+    db.refresh(db_project)
+    return db_project
+
+@router.get("/api/projects", response_model=list[ProjectResponse])
+def list_projects(db: Session = Depends(get_db)):
+    return db.query(Project).order_by(Project.created_at.desc()).all()
+
+@router.get("/api/projects/{project_id}", response_model=ProjectResponse)
+def get_project(project_id: int, db: Session = Depends(get_db)):
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return project
+
+@router.get("/api/projects/{project_id}/jobs")
+def get_project_jobs(project_id: int, db: Session = Depends(get_db)):
+    jobs_db = db.query(Job).filter(Job.project_id == project_id).order_by(Job.created_at.desc()).all()
+    # We return a custom dict because we don't have a JobResponse schema
+    return [{"id": j.id, "type": j.job_type, "status": j.status, "created_at": j.created_at} for j in jobs_db]
+
+from engine.ffs_engine import generate_ffs_data
+
+@router.get("/api/ffs-data/{job_id}")
+async def get_ffs_data(job_id: str, db: Session = Depends(get_db)):
+    # 1. Coba dari DB dulu
+    job_db = db.query(Job).filter(Job.id == job_id).first()
+    if job_db and job_db.result_path:
+        import json
+        if os.path.exists(job_db.result_path):
+            with open(job_db.result_path, "r") as f:
+                ffs_data = json.load(f)
+            return {"status": "ok", "data": ffs_data}
+            
+    # 2. Jika tidak ada di DB, coba dari memory (fallback)
+    if job_id not in jobs:
+        raise HTTPException(status_code=404, detail="Job not found in memory or DB")
+    
+    job = jobs[job_id]
+    if job.get("status") != "completed" or "report" not in job:
+        raise HTTPException(status_code=400, detail="Job not completed or report missing")
+        
+    report = job["report"]
+    params = job.get("params", {})
+    
+    wt = params.get("wt_mm", 6.4)
+    od = params.get("od_mm", 219.1)
+    smys = params.get("smys_mpa", 359.0)
+    maop = params.get("maop_bar", 70.0)
+    years_between = 0.0
+    
+    if params.get("year_r1") and params.get("year_r2"):
+        years_between = float(params["year_r2"] - params["year_r1"])
+    
+    ffs_data = generate_ffs_data(
+        match_results=report.match_results,
+        run1_anomalies=report._corrected_run1.get("anomalies", []),
+        run2_anomalies=report._corrected_run2.get("anomalies", []),
+        years_between=years_between,
+        wt_mm=wt,
+        od_mm=od,
+        smys_mpa=smys,
+        maop_bar=maop
+    )
+    
+    return {"status": "ok", "data": ffs_data}
 
 @router.post("/api/upload", response_model=UploadResponse)
 async def upload_files(

@@ -31,3 +31,6 @@ Thumbs.db
 # Project Specific
 backend/uploads/
 *.xlsx
+
+# Database
+database.sqlite

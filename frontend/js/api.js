@@ -5,6 +5,28 @@
 const API_BASE = window.location.origin;
 
 const api = {
+  async createProject(name) {
+    const res = await fetch(`${API_BASE}/api/projects`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
+    if (!res.ok) throw new Error('Failed to create project');
+    return res.json();
+  },
+
+  async getProjects() {
+    const res = await fetch(`${API_BASE}/api/projects`);
+    if (!res.ok) throw new Error('Failed to fetch projects');
+    return res.json();
+  },
+
+  async getProjectJobs(projectId) {
+    const res = await fetch(`${API_BASE}/api/projects/${projectId}/jobs`);
+    if (!res.ok) throw new Error('Failed to fetch project jobs');
+    return res.json();
+  },
+
   /**
    * Upload R1 & R2 Excel files.
    * @param {File} fileR1 - Survey lama
